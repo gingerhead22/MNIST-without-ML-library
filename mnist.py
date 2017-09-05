@@ -117,29 +117,46 @@ class NN:
 	def update_weights(DELTA1, DELTA2,SIZE):
 		self.W1-=self.ALPHA/SIZE*(DELTA1)
 		self.W2-=self.ALPHA/SIZE*(DELTA2)
+	def validate():
+
+	def print_loss():
+
+	def cease_training():
 
 	def train(trainX, trainY):
 		SIZE = trainX.shape[0]
 		iter = SIZE/self.batch_size
 		loss = 0
+		count =0
+		While not self.cease_training():
+			count+=1
+			DELTA1 =
+			DELTA2 =
+			for i in range(iter):
+				X = trainX[i*self.batch_size:(i+1)*self.batch_size]
+				target = trainY[i*self.batch_size:(i+1)*self.batch_size]
+				Y, A2= self.feed_forward(X)
+				loss+= self.loss_calculate(Y, target)
+				theta3=Y-target
+				ONE=np.ones(A2.shape[0]*A2.shape[1]).reshape(A2.shape[0],A2.shape[1])
+				index=np.multiply(A2,ONE-A2)
+				theta2=np.multiply(np.dot(self.W2.transpose(),theta3),index)
+				DELTA2+=np.dot(theta3,A2.transpose())
+				theta2=theta2[1:]
+				DELTA1+=np.dot(theta2,X.transpose())
+					if i%10 ==0:
+						self.update_weights(DELTA1, DELTA2,10*self.batch_size)
+						DELTA2 = self.initialize(DELTA2)
+						DELTA1 = self.initialize(DELTA1)
+			loss = loss*1.0/SIZE
+			if count%10 == 0:
+				self.validate()
+				self.print_loss()
+		print("training finished")
+		return True
 
-		for i in range(iter):
-			X = trainX[i*self.batch_size:(i+1)*self.batch_size]
-			target = trainY[i*self.batch_size:(i+1)*self.batch_size]
-			Y, A2= self.feed_forward(X)
-			loss+= self.loss_calculate(Y, target)
-			theta3=Y-target
-			ONE=np.ones(A2.shape[0]*A2.shape[1]).reshape(A2.shape[0],A2.shape[1])
-			index=np.multiply(A2,ONE-A2)
-			theta2=np.multiply(np.dot(self.W2.transpose(),theta3),index)
-			DELTA2+=np.dot(theta3,A2.transpose())
-			theta2=theta2[1:]
-			DELTA1+=np.dot(theta2,X.transpose())
-				if i%10 ==0:
-					self.update_weights(DELTA1, DELTA2,10*self.batch_size)
-					DELTA2 = self.initialize(DELTA2)
-					DELTA1 = self.initialize(DELTA1)
-					
+	def evaluate(testX, testY):
+		SIZE = testX.shape[0]
 
 R2=100
 W1=np.random.rand(R2,PIXELS+1)
