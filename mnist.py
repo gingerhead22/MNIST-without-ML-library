@@ -76,7 +76,7 @@ class NN:
 		self.valStack = [] 	# for validation
 		self.valMaxLength = 4
 		self.ALPHA =  1 # initial learning rate
-		self.LAMBDA = 2 # to protect weight value from increasing 
+		self.LAMBDA = 2.5 # to protect weight value from increasing 
 		self.MAX_EPOCH =40
 		self.train_acc = [] # for plotting the accuray
 		self.val_acc = []
@@ -85,22 +85,15 @@ class NN:
 	def sigmoid(self,z):
 		m,n = z.shape
 		ans = np.zeros(m*n).reshape(m,n)
-		for i in range(m):
-			for j in range(n):
-				if z[i,j] < -700:
-					z[i,j] = -700
-				ans[i,j] = 1.0/(1+math.exp(-1*z[i,j]))
+		z[z < -700] = -700
+		ans = 1.0/(1+np.exp(-1*z))
 		return ans
 
 	def softmax(self,z):
 		m,n = z.shape
 		b =np.random.randn(m*n).reshape(m,n)
-		for i in range(m):
-			for j in range(n):
-				if z[i,j] > 700:
-					z[i,j] = math.exp(700)
-				else:
-					z[i,j] = math.exp(z[i,j])
+		z[z > 700] = 700
+		z = np.exp(z)
 		for i in range(m):
 			b[i] = z[i]*1.0/np.sum(z[i])
 		return b
