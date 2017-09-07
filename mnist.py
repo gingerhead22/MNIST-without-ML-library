@@ -213,6 +213,27 @@ class NN:
 			ACC +=self.cal_acc(Y, target)*1.0/iter
 		print("########### evaluation ############")
 		print("test_acc: ", ACC, "test_loss: ", LOSS)
+	
+	def test_plot(self, testX, testY, num = 10):
+		SIZE = testX.shape[0]
+		order = np.random.choice(SIZE, num, replace = False)
+		sampleX = testX[order]
+		predictY, a2 = self.feed_forward(sampleX)
+		sampleY = testY[order]
+		sampleY = np.argmax(sampleY,axis = 1)
+
+		for i in range(sampleY.shape[0]):
+			X = sampleX[i]
+			X.reshape(28,28)
+			Y = predictY[i]
+			T = sampleY[i]
+			plt.suptitle("prediction: ",Y,"  target: ",T)
+			plt.imshow(X, interpolation = 'nearest')
+			name = "sample_"+str(i)+".png"
+			plt.savefig(name)
+			plt.show()
+		return True
+
 
 def main():
 	trainX, trainY, testX, testY, valX, valY = load_data()
