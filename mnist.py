@@ -1,9 +1,8 @@
 from __future__ import print_function
 import os
 import numpy as np
+import matplotlib.pyplot as plt 
 import math
-
-np.set_printoptions(precision = 5, suppress = True)
 
 TRAINING_IMAGE='./data/train-images.idx3-ubyte'
 TRAINING_LABEL='./data/train-labels.idx1-ubyte'
@@ -22,6 +21,7 @@ def load_data():
 	for s in trainImg:
 		trainX.append(ord(s[0]))
 	trainX=np.array(trainX).reshape(TRAINING_SIZE,PIXELS)
+	trainX = trainX *1.0/255
 	print("training images loaded, "+str(trainX.shape[0])+" datasets in total")
 
 	trainLblFile=open(TRAINING_LABEL)
@@ -42,6 +42,7 @@ def load_data():
 	for s in testImg:
 		testX.append(ord(s[0]))
 	testX=np.array(testX).reshape(TEST_SIZE,PIXELS)
+	testX = testX *1.0/255
 	print("test images loaded, "+str(testX.shape[0])+" datasets in total")
 
 	testLblFile=open(TEST_LABEL)
@@ -55,38 +56,51 @@ def load_data():
 	testY=np.array(testY).reshape(TEST_SIZE,10)
 	print("test labels loaded, "+str(testY.shape[0])+" datasets in total")
 
-	valX=trainX[int(TRAINING_SIZE*0.8):]
-	trainX=trainX[:int(TRAINING_SIZE*0.8)]
-	valY=trainY[int(TRAINING_SIZE*0.8):]
-	trainY=trainY[:int(TRAINING_SIZE*0.8)]
+	valX=trainX[int(TRAINING_SIZE*0.95):]
+	trainX=trainX[:int(TRAINING_SIZE*0.95)]
+	valY=trainY[int(TRAINING_SIZE*0.95):]
+	trainY=trainY[:int(TRAINING_SIZE*0.95)]
 
 	return trainX, trainY, testX, testY, valX, valY
 
 #model creating
 class NN:
-	ALPHA =  0.5
-	LAMBDA = 1
-	def __init__(self, num_input = PIXELS, num_output = 10, batch_size = 500):
+	
+	def __init__(self, num_input = PIXELS, num_output = 10, batch_size = 250):
 		self.num_input = num_input
-		self.num_hidden = 100
+		self.num_hidden = 150
 		self.num_output = num_output
 		self.batch_size = batch_size
 		self. W1 = np.random.randn(self.num_hidden*(self.num_input + 1)).reshape(self.num_input + 1, self.num_hidden)
 		self.W2 = np.random.randn(self.num_output*(self.num_hidden + 1)).reshape(self.num_hidden + 1, self.num_output)
-		self.valStack = []
+		self.valStack = [] 	# for validation
+		self.valMaxLength = 4
+		self.ALPHA =  1 # initial learning rate
+		self.LAMBDA = 2 # to protect weight value from increasing 
+		self.MAX_EPOCH =40
+		self.train_acc = [] # for plotting the accuray
+		self.val_acc = []
+		self.cease_training = False
+	
 	def sigmoid(self,z):
 		m,n = z.shape
 		ans = np.zeros(m*n).reshape(m,n)
 		for i in range(m):
 			for j in range(n):
-				if z[i,j] < -100:
-					z[i,j] = -100
+				if z[i,j] < -700:
+					z[i,j] = -700
 				ans[i,j] = 1.0/(1+math.exp(-1*z[i,j]))
 		return ans
 
-	def normalize(self,z):
+	def softmax(self,z):
 		m,n = z.shape
 		b =np.random.randn(m*n).reshape(m,n)
+		for i in range(m):
+			for j in range(n):
+				if z[i,j] > 700:
+					z[i,j] = math.exp(700)
+				else:
+					z[i,j] = math.exp(z[i,j])
 		for i in range(m):
 			b[i] = z[i]*1.0/np.sum(z[i])
 		return b
@@ -95,12 +109,19 @@ class NN:
 		ONE = np.ones(X.shape[0]).reshape(X.shape[0],1)
 		return np.hstack((ONE, X))
 
-	def feed_forward(self,X):
-		A1=self.add_bias(X)
+	def drop_out(self, z, rate):
+		batch_size,num_feature = z.shape 
+		for i in range(batch_size):
+			order = np.random.choice(num_feature, int(num_feature*rate), replace = False)
+			z[i,order] = 0
+		return z
+
+	def feed_forward(self,X,drop_out_rate = 0):
+		A1=self.drop_out(self.add_bias(X),drop_out_rate)
 		A2=self.sigmoid(np.dot(A1, self.W1))
 		#add bias to hidden layer
-		A2=self.add_bias(A2)
-		Y=self.normalize(self.sigmoid(np.dot(A2, self.W2)))
+		A2=self.drop_out(self.add_bias(A2),drop_out_rate)
+		Y=self.softmax(np.dot(A2, self.W2))
 		return Y, A2
 
 	def cal_loss(self,Y, target):
@@ -115,41 +136,55 @@ class NN:
 		result = np.count_nonzero((y == target))
 		return result * 1.0/base
 
+	# place holder
 	def initialize(self,DELTA):
 		m,n = DELTA.shape
 		return np.zeros(m*n).reshape(m,n)
 
-	def update_weights(self,DELTA1, DELTA2,SIZE):
-		self.W1-=self.ALPHA/SIZE*(DELTA1)
-		self.W2-=self.ALPHA/SIZE*(DELTA2)
+	def update_weights(self,DELTA1, DELTA2,SIZE, epoch = 0):
+		D1 = self.initialize(DELTA1)
+		D1[1:] = (DELTA1[1:] + self.LAMBDA * self.W1[1:]) * 1.0/SIZE
+		D1[0] = DELTA1[0] * 1.0/SIZE
+		D2 = self.initialize(DELTA2)
+		D2[1:] = (DELTA2[1:] + self.LAMBDA * self.W2[1:]) * 1.0/SIZE
+		D2[0] = DELTA2[0] * 1.0/SIZE
+		alpha = self.ALPHA * math.exp(-1.0 * epoch/self.MAX_EPOCH) # decrease the learing rate during training  
+		self.W1-=alpha * D1
+		self.W2-=alpha * D2
 
-	def validate(self,valX, valY):
-		SIZE = valX.shape[0]
-		CHOICE = SIZE/10
-		order = np.random.choice(SIZE, CHOICE, replace = False)
-		valx = valX[order]
-		valy = valY[order]
+	def validate(self,valx, valy):
 		y, a2 = self.feed_forward(valx)
 		loss = self.cal_loss(y, valy)
 		acc = self.cal_acc(y, valy)
-		if not self.valStack:
-			self.valStack.append(loss)
-		elif loss > self.valStack[-1]:
-			self.valStack.append(loss)
+		self.val_acc.append(acc)
+		if len(self.valStack) <self.valMaxLength:
+			self.valStack.append(acc)
+			self.valStack.sort()
+		elif acc > self.valStack[0]:
+			self.valStack.pop(0)
+			self.valStack.append(acc)
+			self.valStack.sort()
 		else:
-			self.valStack = []
+			self.cease_training = True # if the current accuracy is not in the top four, then stop training process
 		print("val_acc: ",acc," val_loss: ",loss)
 
-	def cease_training(self):
-		if len(self.valStack) >=4:
-			return True
-		return False
+	def plot_result(self):
+		fig = plt.figure()
+		fig.suptitle("training and validation accuracy")
+		plt.plot(range(len(self.train_acc)), self.train_acc, label = "train accuracy")
+		plt.plot(range(len(self.val_acc)), self.val_acc, label = "validation accuracy")
+		plt.legend(loc = "lower right")
+		plt.xlabel('epoch')
+		plt.ylabel('accuracy')
+		name = "accuracy_by_epoch.png"
+		plt.savefig(name)
+		plt.show()
 
 	def train(self,trainX, trainY, valX, valY):
 		SIZE = trainX.shape[0]
 		iter = SIZE/self.batch_size
 		epoch =0
-		while(not self.cease_training()):
+		while((not self.cease_training) and epoch < self.MAX_EPOCH):
 			loss = 0
 			acc = 0
 			epoch+=1
@@ -158,9 +193,11 @@ class NN:
 			for i in range(iter):
 				X = trainX[i*self.batch_size:(i+1)*self.batch_size]
 				target = trainY[i*self.batch_size:(i+1)*self.batch_size]
-				Y, A2= self.feed_forward(X)
+				Y, A2= self.feed_forward(X,drop_out_rate = 0.4)
 				loss+= self.cal_loss(Y, target)*1.0/iter
 				acc+= self.cal_acc(Y, target)*1.0/iter
+
+				#back prob
 				theta3=Y-target
 				ONE=np.ones(A2.shape[0]*A2.shape[1]).reshape(A2.shape[0],A2.shape[1])
 				index=np.multiply(A2,ONE-A2)
@@ -169,17 +206,19 @@ class NN:
 				theta2=theta2[:,1:]
 				A1=self.add_bias(X)
 				DELTA1+=np.dot(A1.transpose(), theta2)
-				if i%10 ==0:
-					self.update_weights(DELTA1, DELTA2,10*self.batch_size)
+				if i%100 == 0:
+					self.update_weights(DELTA1, DELTA2,10*self.batch_size, epoch = epoch)
 					DELTA2 = self.initialize(DELTA2)
 					DELTA1 = self.initialize(DELTA1)
-			if epoch%2 == 0:
+			if epoch%1 == 0:
 				print("############# epoch ",epoch," #############")
 				print("acc: ",acc," loss: ",loss)
+				self.train_acc.append(acc)
 				self.validate(valX, valY)
 				print()
 
 		print("######### training finished #############")
+		self.plot_result()
 		return True
 
 	def evaluate(self,testX, testY):
@@ -192,7 +231,7 @@ class NN:
 			target = testY[i*self.batch_size:(i+1)*self.batch_size]
 			Y, A2 = self.feed_forward(X)
 			LOSS +=self.cal_loss(Y, target)*1.0/iter
-			ACC +=self.cal_acc(Y, acc)*1.0/iter
+			ACC +=self.cal_acc(Y, target)*1.0/iter
 		print("########### evaluation ############")
 		print("test_acc: ", ACC, "test_loss: ", LOSS)
 
@@ -200,7 +239,7 @@ class NN:
 def main():
 	trainX, trainY, testX, testY, valX, valY = load_data()
 	print(trainX.shape, trainY.shape, testX.shape, testY.shape, valX.shape, valY.shape)
-	nn = NN(PIXELS, 10, 500)
+	nn = NN(PIXELS, 10, 50)
 	nn.train(trainX, trainY, valX, valY)
 	nn.evaluate(testX, testY)
 
