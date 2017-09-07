@@ -61,9 +61,9 @@ class NN:
 		self.W2 = np.random.randn(self.num_output*(self.num_hidden + 1)).reshape(self.num_hidden + 1, self.num_output)
 		self.valStack = [] 	# for validation
 		self.valMaxLength = 4
-		self.ALPHA =  1 # initial learning rate
-		self.LAMBDA = 2.5 # to protect weight value from increasing 
-		self.MAX_EPOCH =50
+		self.ALPHA =  10 # initial learning rate
+		self.LAMBDA = 2 # to protect weight value from increasing 
+		self.MAX_EPOCH =60
 		self.train_acc = [] # for plotting the accuray
 		self.val_acc = []
 		self.cease_training = False
@@ -162,6 +162,7 @@ class NN:
 	def train(self,trainX, trainY, valX, valY):
 		SIZE = trainX.shape[0]
 		iter = SIZE/self.batch_size
+		update_iter = 100
 		epoch =0
 		while((not self.cease_training) and epoch < self.MAX_EPOCH):
 			loss = 0
@@ -185,8 +186,8 @@ class NN:
 				theta2=theta2[:,1:]
 				A1=self.add_bias(X)
 				DELTA1+=np.dot(A1.transpose(), theta2)
-				if i%100 == 0:
-					self.update_weights(DELTA1, DELTA2,10*self.batch_size, epoch = epoch)
+				if i%update_iter == 0:
+					self.update_weights(DELTA1, DELTA2, update_iter*self.batch_size, epoch = epoch)
 					DELTA2 = self.initialize(DELTA2)
 					DELTA1 = self.initialize(DELTA1)
 			if epoch%1 == 0:
