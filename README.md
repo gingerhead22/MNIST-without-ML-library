@@ -9,4 +9,4 @@ Please put the code in the same place with a folder named "data", and put all fo
 
 Currently the model can generate a 93% accuracy on test data
 
-In the accuracy plot, the training accuracy is lower because dropout(r = 0.4) was used during training but not validation
+In the accuracy plot, the training accuracy is lower because dropout(r = 0.4) was used during training but not during validation
