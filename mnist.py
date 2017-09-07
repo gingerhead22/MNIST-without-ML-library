@@ -13,48 +13,35 @@ TRAINING_SIZE=60000
 TEST_SIZE=10000
 
 def load_data():
-	#data loading and preprocessing
-	trainImgFile=open(TRAINING_IMAGE)
-	trainImg=trainImgFile.read()
-	trainImg=trainImg[16:]
-	trainX=[]
-	for s in trainImg:
-		trainX.append(ord(s[0]))
-	trainX=np.array(trainX).reshape(TRAINING_SIZE,PIXELS)
-	trainX = trainX *1.0/255
-	print("training images loaded, "+str(trainX.shape[0])+" datasets in total")
-
-	trainLblFile=open(TRAINING_LABEL)
-	trainLbl=trainLblFile.read()
-	trainLbl=trainLbl[8:]
-	trainY=[]
-	for a in trainLbl:
-		temp=[0]*10
-		temp[ord(a[0])]=1
-		trainY.append(temp)
-	trainY=np.array(trainY).reshape(TRAINING_SIZE,10)
-	print("training labels loaded, "+str(trainY.shape[0])+" datasets in total")
-
-	testImgFile=open(TEST_IMAGE)
-	testImg=testImgFile.read()
-	testImg=testImg[16:]
-	testX=[]
-	for s in testImg:
-		testX.append(ord(s[0]))
-	testX=np.array(testX).reshape(TEST_SIZE,PIXELS)
-	testX = testX *1.0/255
-	print("test images loaded, "+str(testX.shape[0])+" datasets in total")
-
-	testLblFile=open(TEST_LABEL)
-	testLbl=testLblFile.read()
-	testLbl=testLbl[8:]
-	testY=[]
-	for a in testLbl:
-		temp=[0]*10
-		temp[ord(a[0])]=1
-		testY.append(temp)
-	testY=np.array(testY).reshape(TEST_SIZE,10)
-	print("test labels loaded, "+str(testY.shape[0])+" datasets in total")
+	def load_image(data_name, data_size):
+		ImgFile=open(data_name)
+		Img=ImgFile.read()
+		Img=Img[16:]
+		X=[]
+		for s in Img:
+			X.append(ord(s[0]))
+		X=np.array(X).reshape(data_size,PIXELS)
+		X = X *1.0/255
+		print("Images loaded, "+str(X.shape[0])+" datasets in total")
+		return X
+	def load_label(label_name, label_size):
+		LblFile=open(label_name)
+		Lbl=LblFile.read()
+		Lbl=Lbl[8:]
+		Y=[]
+		for a in Lbl:
+			temp=[0]*10
+			temp[ord(a[0])]=1
+			Y.append(temp)
+		Y=np.array(Y).reshape(label_size,10)
+		print("Labels loaded, "+str(Y.shape[0])+" datasets in total")
+		return Y
+	print("######## training data loading ############")
+	trainX = load_image(TRAINING_IMAGE, TRAINING_SIZE)
+	trainY = load_label(TRAINING_LABEL, TRAINING_SIZE)
+	print("########## test data loading ##############")
+	testX = load_image(TEST_IMAGE, TEST_SIZE)
+	testY = load_label(TEST_LABEL, TEST_SIZE)
 
 	valX=trainX[int(TRAINING_SIZE*0.95):]
 	trainX=trainX[:int(TRAINING_SIZE*0.95)]
@@ -62,7 +49,6 @@ def load_data():
 	trainY=trainY[:int(TRAINING_SIZE*0.95)]
 
 	return trainX, trainY, testX, testY, valX, valY
-
 #model creating
 class NN:
 	
@@ -77,7 +63,7 @@ class NN:
 		self.valMaxLength = 4
 		self.ALPHA =  1 # initial learning rate
 		self.LAMBDA = 2.5 # to protect weight value from increasing 
-		self.MAX_EPOCH =40
+		self.MAX_EPOCH =50
 		self.train_acc = [] # for plotting the accuray
 		self.val_acc = []
 		self.cease_training = False
@@ -209,7 +195,6 @@ class NN:
 				self.train_acc.append(acc)
 				self.validate(valX, valY)
 				print()
-
 		print("######### training finished #############")
 		self.plot_result()
 		return True
@@ -228,14 +213,12 @@ class NN:
 		print("########### evaluation ############")
 		print("test_acc: ", ACC, "test_loss: ", LOSS)
 
-
 def main():
 	trainX, trainY, testX, testY, valX, valY = load_data()
 	print(trainX.shape, trainY.shape, testX.shape, testY.shape, valX.shape, valY.shape)
 	nn = NN(PIXELS, 10, 50)
 	nn.train(trainX, trainY, valX, valY)
 	nn.evaluate(testX, testY)
-
 
 if __name__ == "__main__":
 	main()
