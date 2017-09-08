@@ -42,12 +42,10 @@ def load_data():
 	print("########## test data loading ##############")
 	testX = load_image(TEST_IMAGE, TEST_SIZE)
 	testY = load_label(TEST_LABEL, TEST_SIZE)
-
 	valX=trainX[int(TRAINING_SIZE*0.95):]
 	trainX=trainX[:int(TRAINING_SIZE*0.95)]
 	valY=trainY[int(TRAINING_SIZE*0.95):]
 	trainY=trainY[:int(TRAINING_SIZE*0.95)]
-
 	return trainX, trainY, testX, testY, valX, valY
 #model creating
 class NN:
