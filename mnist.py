@@ -61,8 +61,8 @@ class NN:
 		self.W2 = np.random.randn(self.num_output*(self.num_hidden + 1)).reshape(self.num_hidden + 1, self.num_output)
 		self.valStack = [] 	# for validation
 		self.valMaxLength = 4
-		self.ALPHA =  10 # initial learning rate
-		self.LAMBDA = 2 # to protect weight value from increasing 
+		self.ALPHA =  10.5 # initial learning rate
+		self.LAMBDA = 1.5  # to protect weight value from increasing 
 		self.MAX_EPOCH =60
 		self.train_acc = [] # for plotting the accuray
 		self.val_acc = []
@@ -127,7 +127,7 @@ class NN:
 		D2 = self.initialize(DELTA2)
 		D2[1:] = (DELTA2[1:] + self.LAMBDA * self.W2[1:]) * 1.0/SIZE
 		D2[0] = DELTA2[0] * 1.0/SIZE
-		alpha = self.ALPHA * math.exp(-1.0 * epoch/self.MAX_EPOCH) # decrease the learing rate during training  
+		alpha = self.ALPHA * math.exp(-1.1 * epoch/self.MAX_EPOCH) # decrease the learing rate during training  
 		self.W1-=alpha * D1
 		self.W2-=alpha * D2
 
@@ -219,15 +219,16 @@ class NN:
 		order = np.random.choice(SIZE, num, replace = False)
 		sampleX = testX[order]
 		predictY, a2 = self.feed_forward(sampleX)
+		predictY = np.argmax(predictY, axis = 1)
 		sampleY = testY[order]
-		sampleY = np.argmax(sampleY,axis = 1)
-
-		for i in range(sampleY.shape[0]):
+		sampleY = np.argmax(sampleY, axis = 1)
+		for i in range(num):
 			X = sampleX[i]
-			X.reshape(28,28)
+			X = X.reshape(28,28)
 			Y = predictY[i]
 			T = sampleY[i]
-			plt.suptitle("prediction: ",Y,"  target: ",T)
+			title = "prediction: " + str(Y) + "  target: " +str(T)
+			plt.suptitle(title)
 			plt.imshow(X, interpolation = 'nearest')
 			name = "sample_"+str(i)+".png"
 			plt.savefig(name)
@@ -241,6 +242,7 @@ def main():
 	nn = NN(PIXELS, 10, 50)
 	nn.train(trainX, trainY, valX, valY)
 	nn.evaluate(testX, testY)
+	nn.test_plot(testX, testY, 20)
 
 if __name__ == "__main__":
 	main()
