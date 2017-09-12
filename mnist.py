@@ -47,9 +47,9 @@ def load_data():
 	valY=trainY[int(TRAINING_SIZE*0.95):]
 	trainY=trainY[:int(TRAINING_SIZE*0.95)]
 	return trainX, trainY, testX, testY, valX, valY
+
 #model creating
-class NN:
-	
+class NN:	
 	def __init__(self, num_input = PIXELS, num_output = 10, batch_size = 250):
 		self.num_input = num_input
 		self.num_hidden = 150
@@ -112,11 +112,9 @@ class NN:
 		target = np.argmax(TARGET,axis = 1)
 		result = np.count_nonzero((y == target))
 		return result * 1.0/base
-
 	# place holder
 	def initialize(self,DELTA):
-		m,n = DELTA.shape
-		return np.zeros(m*n).reshape(m,n)
+		return np.zeros_like(DELTA)
 
 	def update_weights(self,DELTA1, DELTA2,SIZE, epoch = 0):
 		D1 = self.initialize(DELTA1)
@@ -174,11 +172,9 @@ class NN:
 				Y, A2= self.feed_forward(X,drop_out_rate = 0.4)
 				loss+= self.cal_loss(Y, target)*1.0/iter
 				acc+= self.cal_acc(Y, target)*1.0/iter
-
 				#back prob
 				theta3=Y-target
-				ONE=np.ones(A2.shape[0]*A2.shape[1]).reshape(A2.shape[0],A2.shape[1])
-				index=np.multiply(A2,ONE-A2)
+				index=np.multiply(A2,1-A2)
 				theta2=np.multiply(np.dot(theta3, self.W2.transpose()),index)
 				DELTA2+=np.dot(A2.transpose(), theta3)
 				theta2=theta2[:,1:]
@@ -232,7 +228,6 @@ class NN:
 			plt.savefig(name)
 			plt.show()
 		return True
-
 
 def main():
 	trainX, trainY, testX, testY, valX, valY = load_data()
